@@ -1,26 +1,71 @@
 .header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    background-color: #333;
+    position: relative;
+    min-height: 58px;
+    background-color: #ba0024;
     max-width: 100%;
+    padding: 0 24px;
 }
 
 .nav {
     display: flex;
-    gap: 1rem;
-    padding: 0.5rem;
+    align-items: center;
+    position: absolute;
+    right: 24px;
+    height: 100%;
 }
 
-.nav a {
-    text-decoration: none;
+.nav span {
     color: black;
-    font-weight: bold;
-    padding: 0.5rem 1rem;
-
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(1rem, 2vw, 1.25rem);
 }
 
 .header h1 {
-    font-size: 1.5rem;
-    color: #ececec;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(2.75rem, 6vw, 3.75rem);
+    line-height: 1;
+    color: black;
+}
+
+.menuButton {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 42px;
+    height: 42px;
+    border: 0;
+    background: transparent;
+    padding: 6px 4px;
+    cursor: pointer;
+}
+
+.menuButton span {
+    display: block;
+    height: 3px;
+    width: 28px;
+    background-color: #d9d9d9;
+}
+
+@media (max-width: 640px) {
+    .header {
+        min-height: 64px;
+        padding: 0 16px;
+    }
+
+    .nav {
+        right: 12px;
+    }
+
+    .nav span {
+        max-width: 90px;
+        text-align: right;
+        line-height: 1.1;
+    }
 }

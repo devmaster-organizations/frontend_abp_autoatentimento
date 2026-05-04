@@ -1,14 +1,16 @@
 import styles from './styles.module.css'
-import Link from 'next/link'
 
 const Header = () => {
   return (
     <header className={styles.header}>
-      <h1>Autoatendimento</h1>
+      <button className={styles.menuButton} type="button" aria-label="Abrir menu">
+        <span />
+        <span />
+        <span />
+      </button>
+      <h1>FATEC</h1>
       <nav className={styles.nav}>
-        <Link href="/about">Sobre</Link>
-        <Link href="/questions">Perguntas</Link>
-        <Link href="/usuarios">Usuários</Link>
+        <span>Envie suas duvidas</span>
       </nav>
     </header>
   )
