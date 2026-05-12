@@ -1,19 +1,28 @@
-import styles from './styles.module.css'
+import styles from "./styles.module.css";
 
-const Header = () => {
+type HeaderProps = {
+  onBackHome?: () => void;
+};
+
+const Header = ({ onBackHome }: HeaderProps) => {
   return (
     <header className={styles.header}>
-      <button className={styles.menuButton} type="button" aria-label="Abrir menu">
-        <span />
-        <span />
-        <span />
-      </button>
-      <h1>FATEC</h1>
+      <div className={styles.logoArea}>
+        <p className={styles.logo}>Fatec</p>
+        <span>Jacareí</span>
+      </div>
+
       <nav className={styles.nav}>
-        <span>Envie suas duvidas</span>
+        <span>Atendimento Virtual</span>
+
+        {onBackHome ? (
+          <button type="button" onClick={onBackHome}>
+            Início
+          </button>
+        ) : null}
       </nav>
     </header>
-  )
-}
+  );
+};
 
-export default Header
+export default Header;
