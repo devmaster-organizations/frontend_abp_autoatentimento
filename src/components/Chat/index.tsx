@@ -14,7 +14,11 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
-export default function Chat() {
+type ChatProps = {
+  onBackHome?: () => void;
+};
+
+export default function Chat({ onBackHome }: ChatProps) {
   const [currentNodeId, setCurrentNodeId] = useState(START_NODE_ID);
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
 
@@ -64,11 +68,21 @@ export default function Chat() {
           type="button"
           onClick={restartConversation}
           className="fixed bottom-6 right-6 flex h-12 w-12 items-center justify-center bg-red-600 text-xl font-bold text-black shadow-md transition hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
-          aria-label="Voltar para o inicio"
-          title="Voltar para o inicio"
+          aria-label="Reiniciar atendimento"
+          title="Reiniciar atendimento"
         >
           ▲
         </button>
+
+        {onBackHome ? (
+          <button
+            type="button"
+            onClick={onBackHome}
+            className="fixed bottom-6 left-6 rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2"
+          >
+            Voltar ao início
+          </button>
+        ) : null}
       </div>
     </section>
   );
