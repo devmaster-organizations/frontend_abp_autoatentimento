@@ -11,7 +11,7 @@ export default function Home() {
   if (showChat) {
     return (
       <>
-        <Header />
+        <Header onBackHome={() => setShowChat(false)} />
         <Chat onBackHome={() => setShowChat(false)} />
       </>
     );
