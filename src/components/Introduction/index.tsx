@@ -39,19 +39,19 @@ export default function Introduction({ onStart }: IntroductionProps) {
         </div>
 
         <nav className="hidden items-center gap-9 text-sm font-semibold text-slate-950 lg:flex">
-          <a className="transition hover:text-red-600" href="#inicio">
+          <a className="transition hover:text-red-600" href="">
             Início
           </a>
-          <a className="transition hover:text-red-600" href="#cursos">
+          <a className="transition hover:text-red-600" href="">
             Cursos
           </a>
-          <a className="transition hover:text-red-600" href="#atendimento">
+          <a className="transition hover:text-red-600" href="">
             Atendimento
           </a>
-          <a className="transition hover:text-red-600" href="#sobre">
+          <a className="transition hover:text-red-600" href="">
             Sobre
           </a>
-          <a className="transition hover:text-red-600" href="#contato">
+          <a className="transition hover:text-red-600" href="">
             Contato
           </a>
         </nav>
