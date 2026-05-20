@@ -4,6 +4,7 @@ import Image from "next/image";
 
 type IntroductionProps = {
   onStart: () => void;
+  onOpenEmailModal: () => void;
 };
 
 const features = [
@@ -24,7 +25,10 @@ const features = [
   },
 ];
 
-export default function Introduction({ onStart }: IntroductionProps) {
+export default function Introduction({
+  onStart,
+  onOpenEmailModal,
+}: IntroductionProps) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/70 to-rose-50 text-slate-900">
       <div className="pointer-events-none absolute -left-28 -top-28 h-[28rem] w-[28rem] rounded-full bg-indigo-400/30 blur-3xl" />
@@ -51,9 +55,13 @@ export default function Introduction({ onStart }: IntroductionProps) {
           <a className="transition hover:text-red-600" href="">
             Sobre
           </a>
-          <a className="transition hover:text-red-600" href="">
+          <button
+            className="cursor-pointer bg-transparent font-semibold transition hover:text-red-600"
+            onClick={onOpenEmailModal}
+            type="button"
+          >
             Contato
-          </a>
+          </button>
         </nav>
 
         <button

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Chat from "@/components/Chat";
+import EmailModal, { EmailFormPayload } from "@/components/EmailModal";
 import Header from "@/components/Header";
 import Introduction from "@/components/Introduction";
 
@@ -9,6 +10,7 @@ const CHAT_HASH = "#chat";
 
 export default function Home() {
   const [showChat, setShowChat] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   const openChat = useCallback(() => {
     setShowChat(true);
@@ -30,6 +32,23 @@ export default function Home() {
     }
   }, []);
 
+  const openEmailModal = useCallback(() => {
+    setShowEmailModal(true);
+  }, []);
+
+  const closeEmailModal = useCallback(() => {
+    setShowEmailModal(false);
+  }, []);
+
+  const submitEmailContact = useCallback(
+    async (payload: EmailFormPayload) => {
+      void payload;
+      // Futuro ponto de integracao com o backend:
+      // await fetch("/api/contact", { method: "POST", body: JSON.stringify(payload) });
+    },
+    [],
+  );
+
   useEffect(() => {
     function syncChatState() {
       setShowChat(window.location.hash === CHAT_HASH);
@@ -48,11 +67,28 @@ export default function Home() {
   if (showChat) {
     return (
       <>
-        <Header onBackHome={closeChat} />
+        <Header onBackHome={closeChat} onOpenEmailModal={openEmailModal} />
         <Chat />
+        <EmailModal
+          isOpen={showEmailModal}
+          onClose={closeEmailModal}
+          onSubmit={submitEmailContact}
+        />
       </>
     );
   }
 
-  return <Introduction onStart={openChat} />;
+  return (
+    <>
+      <Introduction
+        onOpenEmailModal={openEmailModal}
+        onStart={openChat}
+      />
+      <EmailModal
+        isOpen={showEmailModal}
+        onClose={closeEmailModal}
+        onSubmit={submitEmailContact}
+      />
+    </>
+  );
 }

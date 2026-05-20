@@ -2,9 +2,10 @@ import styles from "./styles.module.css";
 
 type HeaderProps = {
   onBackHome?: () => void;
+  onOpenEmailModal?: () => void;
 };
 
-const Header = ({ onBackHome }: HeaderProps) => {
+const Header = ({ onBackHome, onOpenEmailModal }: HeaderProps) => {
   return (
     <header className={styles.header}>
       <div className={styles.logoArea}>
@@ -21,14 +22,13 @@ const Header = ({ onBackHome }: HeaderProps) => {
           </button>
         ) : null}
 
-        <a
+        <button
           className={styles.emailButton}
-          href="mailto:lgustavodefaria@gmail.com"
-          rel="noopener noreferrer"
-          target="_blank"
+          onClick={onOpenEmailModal}
+          type="button"
         >
           Envie seu Email
-        </a>
+        </button>
       </nav>
     </header>
   );
