@@ -20,7 +20,7 @@ export default function Login() {
   }
 };
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f4f6fb] p-6">
+    <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-6xl bg-white rounded-2xl shadow-lg overflow-hidden flex">
         
         {/* LADO ESQUERDO - FORM */}
