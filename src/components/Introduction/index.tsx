@@ -4,6 +4,7 @@ import Image from "next/image";
 
 type IntroductionProps = {
   onStart: () => void;
+  onOpenEmailModal: () => void;
 };
 
 const features = [
@@ -24,7 +25,10 @@ const features = [
   },
 ];
 
-export default function Introduction({ onStart }: IntroductionProps) {
+export default function Introduction({
+  onStart,
+  onOpenEmailModal,
+}: IntroductionProps) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/70 to-rose-50 text-slate-900">
       <div className="pointer-events-none absolute -left-28 -top-28 h-[28rem] w-[28rem] rounded-full bg-indigo-400/30 blur-3xl" />
@@ -39,21 +43,25 @@ export default function Introduction({ onStart }: IntroductionProps) {
         </div>
 
         <nav className="hidden items-center gap-9 text-sm font-semibold text-slate-950 lg:flex">
-          <a className="transition hover:text-red-600" href="#inicio">
+          <a className="transition hover:text-red-600" href="">
             Início
           </a>
-          <a className="transition hover:text-red-600" href="#cursos">
+          <a className="transition hover:text-red-600" href="">
             Cursos
           </a>
-          <a className="transition hover:text-red-600" href="#atendimento">
+          <a className="transition hover:text-red-600" href="">
             Atendimento
           </a>
-          <a className="transition hover:text-red-600" href="#sobre">
+          <a className="transition hover:text-red-600" href="">
             Sobre
           </a>
-          <a className="transition hover:text-red-600" href="#contato">
+          <button
+            className="cursor-pointer bg-transparent font-semibold transition hover:text-red-600"
+            onClick={onOpenEmailModal}
+            type="button"
+          >
             Contato
-          </a>
+          </button>
         </nav>
 
         <button

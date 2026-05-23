@@ -14,11 +14,7 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
-type ChatProps = {
-  onBackHome?: () => void;
-};
-
-export default function Chat({ onBackHome }: ChatProps) {
+export default function Chat() {
   const [currentNodeId, setCurrentNodeId] = useState(START_NODE_ID);
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
 
