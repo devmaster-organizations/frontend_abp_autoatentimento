@@ -4,21 +4,86 @@ import { useState } from "react";
 import Image from "next/image";
 import { Mail, Lock, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/stores/auth.store";
+import { forgotPassword, resetPassword } from "@/services/api/auth.service";
 
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const router = useRouter();
+  const login = useAuthStore((state) => state.login);
+  const isLoading = useAuthStore((state) => state.isLoading);
 
-  const handleLogin = () => {
-  // aqui você pode validar depois
-  if (email && password) {
-    router.push("/chat"); // 👈 sua rota do chatbot
-  }
-};
+  const handleLogin = async () => {
+    setError(null);
+
+    if (!email || !password) {
+      setError("Preencha e-mail e senha.");
+      return;
+    }
+
+    try {
+      const user = await login(email.trim().toLowerCase(), password);
+
+      if (user.role === "ADMIN") {
+        router.push("/admin");
+        return;
+      }
+
+      if (user.role === "SECRETARIA") {
+        router.push("/secretaria");
+        return;
+      }
+
+      router.push("/");
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Falha no login.";
+      setError(message);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const forgotEmail = window.prompt("Digite o e-mail para recuperar a senha:", email);
+
+    if (!forgotEmail) {
+      return;
+    }
+
+    setForgotLoading(true);
+
+    try {
+      const response = await forgotPassword(forgotEmail.trim().toLowerCase());
+
+      const tokenFromResponse = response.resetToken;
+      const token = tokenFromResponse ?? window.prompt("Digite o token recebido por e-mail:");
+
+      if (!token) {
+        alert("Recuperacao iniciada. Quando tiver o token, execute o reset novamente.");
+        setForgotLoading(false);
+        return;
+      }
+
+      const newPassword = window.prompt("Digite a nova senha (minimo 8 caracteres):");
+
+      if (!newPassword) {
+        setForgotLoading(false);
+        return;
+      }
+
+      await resetPassword(token.trim(), newPassword);
+      alert("Senha redefinida com sucesso. Agora faca login.");
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Falha ao recuperar senha.";
+      alert(message);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-6xl bg-white rounded-2xl shadow-lg overflow-hidden flex">
@@ -80,18 +145,30 @@ export default function Login() {
               Lembrar-me
             </label>
 
-            <a className="text-blue-600 hover:underline" href="#">
+            <button
+              type="button"
+              disabled={forgotLoading}
+              onClick={handleForgotPassword}
+              className="text-blue-600 hover:underline disabled:opacity-70"
+            >
               Esqueci minha senha
-            </a>
+            </button>
           </div>
 
           {/* BOTÃO */}
           <button
   onClick={handleLogin}
+  disabled={isLoading}
   className="mt-6 bg-red-600 hover:bg-red-700 shadow-md text-white py-3 rounded-xl font-semibold transition"
 >
-  Entrar
+  {isLoading ? "Entrando..." : "Entrar"}
 </button>
+
+          {error ? (
+            <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {error}
+            </p>
+          ) : null}
 
           {/* FOOTER */}
           <p className="text-sm text-gray-500 mt-6">

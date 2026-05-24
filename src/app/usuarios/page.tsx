@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ModalUsuario from "@/components/usuarios/ModalUsuario";
+import { createUser, fetchUsers } from "@/services/api/users.service";
+import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 
 // Definição da tipagem de Usuário seguindo os campos obrigatórios solicitados
 export type UsuarioExemplo = {
@@ -33,6 +35,42 @@ const usuariosIniciais: UsuarioExemplo[] = [
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<UsuarioExemplo[]>(usuariosIniciais);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { token, isCheckingAccess } = useProtectedRoute({ allowedRoles: ["ADMIN"] });
+
+  useEffect(() => {
+    if (isCheckingAccess || !token) {
+      return;
+    }
+
+    const loadUsers = async () => {
+      setError(null);
+      setIsLoading(true);
+
+      try {
+        const apiUsers = await fetchUsers(token);
+        setUsuarios(
+          apiUsers.map((apiUser) => ({
+            id: apiUser.id,
+            nome: apiUser.name,
+            email: apiUser.email,
+            perfil: apiUser.role === "ADMIN" ? "Administrador" : "Secretária",
+            dataCadastro: new Date(apiUser.createdAt).toLocaleDateString("pt-BR"),
+          })),
+        );
+      } catch (loadError) {
+        const message = loadError instanceof Error ? loadError.message : "Falha ao carregar usuarios.";
+        setError(message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadUsers();
+  }, [isCheckingAccess, token]);
 
   // Funções de gerenciamento (Prontas para integrar com o back-end depois)
   const handleDeletarUsuario = (id: string) => {
@@ -45,6 +83,56 @@ export default function UsuariosPage() {
     console.log("Editar o usuário de ID:", id);
     // Aqui você poderá abrir a modal passando os dados para edição
   };
+
+  const handleCreateUsuario = async (payload: {
+    nome: string;
+    email: string;
+    perfil: "Administrador" | "Secretária";
+  }) => {
+    if (!token) {
+      throw new Error("Sessao expirada. Faca login novamente.");
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const created = await createUser(token, {
+        name: payload.nome,
+        email: payload.email,
+        role: payload.perfil === "Administrador" ? "ADMIN" : "SECRETARIA",
+      });
+
+      setUsuarios((prev) => [
+        {
+          id: created.id,
+          nome: created.name,
+          email: created.email,
+          perfil: created.role === "ADMIN" ? "Administrador" : "Secretária",
+          dataCadastro: new Date(created.createdAt).toLocaleDateString("pt-BR"),
+        },
+        ...prev,
+      ]);
+
+      if (created.temporaryPassword) {
+        alert(`Usuario criado. Senha temporaria: ${created.temporaryPassword}`);
+      }
+    } catch (createError) {
+      const message = createError instanceof Error ? createError.message : "Falha ao criar usuario.";
+      setError(message);
+      throw createError;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isCheckingAccess) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+        Verificando permissao...
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-screen p-8 bg-[#f8fafc]">
@@ -70,6 +158,10 @@ export default function UsuariosPage() {
         </div>
 
         {/* Tabela Refatorada com a Identidade Visual do Grupo */}
+        {error ? (
+          <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p>
+        ) : null}
+
         <div className="overflow-x-auto rounded-3xl border border-white/70 bg-white/70 shadow-2xl shadow-slate-900/5 backdrop-blur">
           <table className="w-full text-left text-sm text-slate-800">
             <thead className="bg-[#15186d] text-xs uppercase tracking-wider text-white">
@@ -134,6 +226,14 @@ export default function UsuariosPage() {
                 </tr>
               ))}
 
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center font-medium text-slate-500">
+                    Carregando usuarios...
+                  </td>
+                </tr>
+              ) : null}
+
               {/* Estado vazio idêntico ao de vocês */}
               {usuarios.length === 0 && (
                 <tr>
@@ -152,7 +252,9 @@ export default function UsuariosPage() {
         {/* Chamada para a modal que criamos anteriormente */}
         <ModalUsuario 
           isOpen={isModalOpen} 
-          onClose={() => setIsModalOpen(false)} 
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleCreateUsuario}
+          isSubmitting={isSubmitting}
         />
         
       </div>

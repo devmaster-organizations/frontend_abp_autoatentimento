@@ -5,9 +5,15 @@ import React, { useState } from "react";
 interface ModalUsuarioProps {
   isOpen: boolean;
   onClose: () => void;
+  onSubmit: (payload: {
+    nome: string;
+    email: string;
+    perfil: "Administrador" | "Secretária";
+  }) => Promise<void>;
+  isSubmitting?: boolean;
 }
 
-export default function ModalUsuario({ isOpen, onClose }: ModalUsuarioProps) {
+export default function ModalUsuario({ isOpen, onClose, onSubmit, isSubmitting = false }: ModalUsuarioProps) {
   // Estados para controlar os campos obrigatórios
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -15,20 +21,31 @@ export default function ModalUsuario({ isOpen, onClose }: ModalUsuarioProps) {
   const [dataCadastro, setDataCadastro] = useState(
     new Date().toISOString().split("T")[0] // Define a data de hoje como padrão
   );
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Aqui futuramente vocês vão conectar com o Prisma/Backend
-    const dadosUsuario = { nome, email, perfil, dataCadastro };
-    console.log("Enviando para o banco:", dadosUsuario);
-    
-    // Limpa o formulário e fecha a modal
-    setNome("");
-    setEmail("");
-    onClose();
+
+    setSubmitError(null);
+
+    try {
+      await onSubmit({
+        nome: nome.trim(),
+        email: email.trim().toLowerCase(),
+        perfil: perfil as "Administrador" | "Secretária",
+      });
+
+      setNome("");
+      setEmail("");
+      setPerfil("Secretária");
+      setDataCadastro(new Date().toISOString().split("T")[0]);
+      onClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao cadastrar usuario.";
+      setSubmitError(message);
+    }
   };
 
   return (
@@ -112,11 +129,18 @@ export default function ModalUsuario({ isOpen, onClose }: ModalUsuarioProps) {
             </button>
             <button
               type="submit"
+              disabled={isSubmitting}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 shadow-sm cursor-pointer"
             >
-              Salvar Usuário
+              {isSubmitting ? "Salvando..." : "Salvar Usuário"}
             </button>
           </div>
+
+          {submitError ? (
+            <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+              {submitError}
+            </p>
+          ) : null}
 
         </form>
       </div>

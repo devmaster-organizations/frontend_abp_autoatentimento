@@ -6,11 +6,13 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import TreeNode from "@/components/admin/TreeNode";
 import { mockTree } from "@/data/mockTree";
 import { useState } from "react";
+import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 
 
 
 
 export default function AdminPage() {
+    const { isCheckingAccess } = useProtectedRoute({ allowedRoles: ["ADMIN"] });
 
     const [openMenuId, setOpenMenuId] =
         useState<number | null>(null);
@@ -65,6 +67,14 @@ export default function AdminPage() {
 
         setTreeData(updateNodes(treeData));
     };
+
+    if (isCheckingAccess) {
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+                Verificando permissao...
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/70 to-rose-50 text-slate-900">

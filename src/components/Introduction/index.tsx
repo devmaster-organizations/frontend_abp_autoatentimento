@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 
 type IntroductionProps = {
   onStart: () => void;
@@ -64,12 +65,12 @@ export default function Introduction({
           </button>
         </nav>
 
-        <button
+        <Link
+          href="/login"
           className="rounded-2xl bg-[#15186d] px-7 py-3 text-sm font-bold text-white shadow-xl shadow-slate-900/10 transition hover:-translate-y-0.5 hover:bg-[#20258f] focus:outline-none focus:ring-2 focus:ring-[#15186d] focus:ring-offset-2"
-          type="button"
         >
           Login
-        </button>
+        </Link>
       </header>
 
       <section

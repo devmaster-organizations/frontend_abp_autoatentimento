@@ -5,6 +5,7 @@
 import TabelaPerguntas, {
   Pergunta,
 } from "@/components/secretaria/TabelaPerguntas";
+import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 
 // Mock de dados simulando o que virá do back-end
 const listaPerguntasMock: Pergunta[] = [
@@ -44,6 +45,16 @@ const listaPerguntasMock: Pergunta[] = [
 ];
 
 export default function SecretariaPage() {
+  const { isCheckingAccess } = useProtectedRoute({ allowedRoles: ["SECRETARIA"] });
+
+  if (isCheckingAccess) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+        Verificando permissao...
+      </main>
+    );
+  }
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/70 to-rose-50 text-slate-900">
       {/* Efeitos de fundo */}
