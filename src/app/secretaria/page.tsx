@@ -2,50 +2,106 @@
 
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import TabelaPerguntas, {
   Pergunta,
 } from "@/components/secretaria/TabelaPerguntas";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
+import {
+  fetchInquiries,
+  updateInquiryResponded,
+} from "@/services/api/inquiries.service";
 
-// Mock de dados simulando o que virá do back-end
-const listaPerguntasMock: Pergunta[] = [
-  {
-    id: "1",
-    dataCadastro: "18/05/2026 - 14:30",
-    nome: "Carlos Silva",
-    email: "carlos.silva@fatec.sp.gov.br",
-    pergunta:
-      "Qual o prazo final para a entrega da rematrícula do segundo semestre?",
-    respondido: false,
-    respondidoEm: "",
-    dataEnvio: "18/05/2026 - 14:32",
-  },
-  {
-    id: "2",
-    dataCadastro: "17/05/2026 - 08:55",
-    nome: "Mariana Souza",
-    email: "mariana.souza@fatec.sp.gov.br",
-    pergunta:
-      "Como faço para solicitar a dispensa da disciplina de Programação Web?",
-    respondido: true,
-    respondidoEm: "17/05/2026 - 10:00",
-    dataEnvio: "17/05/2026 - 09:15",
-  },
-  {
-    id: "3",
-    dataCadastro: "18/05/2026 - 07:50",
-    nome: "Roberto Alencar",
-    email: "roberto.alencar@gmail.com",
-    pergunta:
-      "Quando abre as inscrições para o próximo Vestibular da FATEC Jacareí?",
-    respondido: false,
-    respondidoEm: "",
-    dataEnvio: "18/05/2026 - 08:00",
-  },
-];
+const formatDateTime = (value: string) =>
+  new Date(value).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+const mapApiToPergunta = (item: {
+  id: string;
+  requesterName: string;
+  requesterEmail: string;
+  question: string;
+  status: "ABERTA" | "RESPONDIDA";
+  createdAt: string;
+  updatedAt: string;
+}): Pergunta => ({
+  id: item.id,
+  dataCadastro: formatDateTime(item.createdAt),
+  nome: item.requesterName,
+  email: item.requesterEmail,
+  pergunta: item.question,
+  respondido: item.status === "RESPONDIDA",
+  respondidoEm: item.status === "RESPONDIDA" ? formatDateTime(item.updatedAt) : "",
+  dataEnvio: formatDateTime(item.createdAt),
+});
 
 export default function SecretariaPage() {
-  const { isCheckingAccess } = useProtectedRoute({ allowedRoles: ["SECRETARIA"] });
+  const { isCheckingAccess, token } = useProtectedRoute({
+    allowedRoles: ["SECRETARIA"],
+  });
+  const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canLoad = useMemo(
+    () => !isCheckingAccess && Boolean(token),
+    [isCheckingAccess, token],
+  );
+
+  useEffect(() => {
+    if (!canLoad || !token) {
+      return;
+    }
+
+    const loadInquiries = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const items = await fetchInquiries(token);
+        setPerguntas(items.map(mapApiToPergunta));
+      } catch (requestError) {
+        const message =
+          requestError instanceof Error
+            ? requestError.message
+            : "Falha ao carregar perguntas.";
+        setError(message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadInquiries();
+  }, [canLoad, token]);
+
+  const handleToggleRespondido = async (id: string, responded: boolean) => {
+    if (!token) {
+      return;
+    }
+
+    setError(null);
+
+    try {
+      const updated = await updateInquiryResponded(token, id, responded);
+
+      setPerguntas((prev) =>
+        prev.map((item) =>
+          item.id === id ? mapApiToPergunta(updated) : item,
+        ),
+      );
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error
+          ? requestError.message
+          : "Falha ao atualizar status da pergunta.";
+      setError(message);
+    }
+  };
 
   if (isCheckingAccess) {
     return (
@@ -97,11 +153,19 @@ export default function SecretariaPage() {
             Gerencie e acompanhe as dúvidas enviadas pelos alunos
             através do assistente virtual.
           </p>
+
+          {error ? (
+            <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {error}
+            </p>
+          ) : null}
         </div>
 
         {/* Tabela */}
         <TabelaPerguntas
-          perguntasIniciais={listaPerguntasMock}
+          perguntas={perguntas}
+          isLoading={isLoading}
+          onToggleRespondido={handleToggleRespondido}
         />
       </section>
     </main>

@@ -2,8 +2,6 @@
 
 "use client";
 
-import { useState } from "react";
-
 // Dados vindos do back-end
 export type Pergunta = {
   id: string;
@@ -17,32 +15,16 @@ export type Pergunta = {
 };
 
 type TabelaPerguntasProps = {
-  perguntasIniciais: Pergunta[];
+  perguntas: Pergunta[];
+  isLoading?: boolean;
+  onToggleRespondido: (id: string, responded: boolean) => Promise<void> | void;
 };
 
 export default function TabelaPerguntas({
-  perguntasIniciais,
+  perguntas,
+  isLoading = false,
+  onToggleRespondido,
 }: TabelaPerguntasProps) {
-  const [perguntas, setPerguntas] =
-    useState<Pergunta[]>(perguntasIniciais);
-
-  // Alterna o status de respondido
-  const handleToggleRespondido = (id: string) => {
-    setPerguntas((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              respondido: !p.respondido,
-              respondidoEm: !p.respondido
-                ? new Date().toLocaleString("pt-BR")
-                : "",
-            }
-          : p
-      )
-    );
-  };
-
   return (
     <div className="overflow-x-auto rounded-3xl border border-white/70 bg-white/70 shadow-2xl shadow-slate-900/5 backdrop-blur">
       <table className="w-full text-left text-sm text-slate-800">
@@ -108,9 +90,8 @@ export default function TabelaPerguntas({
                 <input
                   type="checkbox"
                   checked={p.respondido}
-                  onChange={() =>
-                    handleToggleRespondido(p.id)
-                  }
+                  onChange={() => onToggleRespondido(p.id, !p.respondido)}
+                  disabled={isLoading}
                   className="h-5 w-5 cursor-pointer rounded border-slate-300 accent-red-600 transition focus:ring-red-500"
                 />
               </td>
@@ -121,7 +102,18 @@ export default function TabelaPerguntas({
             </tr>
           ))}
 
-          {perguntas.length === 0 && (
+          {isLoading && (
+            <tr>
+              <td
+                colSpan={7}
+                className="px-6 py-10 text-center font-medium text-slate-500"
+              >
+                Carregando perguntas...
+              </td>
+            </tr>
+          )}
+
+          {!isLoading && perguntas.length === 0 && (
             <tr>
               <td
                 colSpan={7}
