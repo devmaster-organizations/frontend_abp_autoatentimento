@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ModalUsuario from "@/components/usuarios/ModalUsuario";
+import { createUser, deleteUser, fetchUsers, updateUser } from "@/services/api/users.service";
+import { useProtectedRoute } from "@/hooks/useProtectedRoute";
+import { useRouter } from "next/navigation";
 
 // Definição da tipagem de Usuário seguindo os campos obrigatórios solicitados
 export type UsuarioExemplo = {
@@ -12,39 +15,175 @@ export type UsuarioExemplo = {
   dataCadastro: string;
 };
 
-// Dados mockados iniciais para popular a tabela com o novo visual
-const usuariosIniciais: UsuarioExemplo[] = [
-  {
-    id: "1",
-    nome: "Ana Souza",
-    email: "ana.secretaria@fatec.sp.gov.br",
-    perfil: "Secretária",
-    dataCadastro: "15/05/2026",
-  },
-  {
-    id: "2",
-    nome: "Carlos Eduardo",
-    email: "carlos.adm@fatec.sp.gov.br",
-    perfil: "Administrador",
-    dataCadastro: "10/05/2026",
-  },
-];
-
 export default function UsuariosPage() {
-  const [usuarios, setUsuarios] = useState<UsuarioExemplo[]>(usuariosIniciais);
+  const [usuarios, setUsuarios] = useState<UsuarioExemplo[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { token, isCheckingAccess } = useProtectedRoute({ allowedRoles: ["ADMIN"] });
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isCheckingAccess || !token) {
+      return;
+    }
+
+    const loadUsers = async () => {
+      setError(null);
+      setIsLoading(true);
+
+      try {
+        const apiUsers = await fetchUsers(token);
+        setUsuarios(
+          apiUsers.map((apiUser) => ({
+            id: apiUser.id,
+            nome: apiUser.name,
+            email: apiUser.email,
+            perfil: apiUser.role === "ADMIN" ? "Administrador" : "Secretária",
+            dataCadastro: new Date(apiUser.createdAt).toLocaleDateString("pt-BR"),
+          })),
+        );
+      } catch (loadError) {
+        const message = loadError instanceof Error ? loadError.message : "Falha ao carregar usuarios.";
+        setError(message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadUsers();
+  }, [isCheckingAccess, token]);
 
   // Funções de gerenciamento (Prontas para integrar com o back-end depois)
-  const handleDeletarUsuario = (id: string) => {
-    if (confirm("Tem certeza que deseja remover este usuário?")) {
+  const handleDeletarUsuario = async (id: string) => {
+    if (!token) {
+      setError("Sessao expirada. Faca login novamente.");
+      return;
+    }
+
+    if (!confirm("Tem certeza que deseja remover este usuário?")) {
+      return;
+    }
+
+    setError(null);
+
+    try {
+      await deleteUser(token, id);
       setUsuarios((prev) => prev.filter((u) => u.id !== id));
+    } catch (deleteError) {
+      const message = deleteError instanceof Error ? deleteError.message : "Falha ao excluir usuario.";
+      setError(message);
     }
   };
 
   const handleEditarUsuario = (id: string) => {
-    console.log("Editar o usuário de ID:", id);
-    // Aqui você poderá abrir a modal passando os dados para edição
+    setEditingUserId(id);
+    setModalMode("edit");
+    setIsModalOpen(true);
   };
+
+  const handleCreateUsuario = async (payload: {
+    nome: string;
+    email: string;
+    perfil: "Administrador" | "Secretária";
+  }) => {
+    if (!token) {
+      throw new Error("Sessao expirada. Faca login novamente.");
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const created = await createUser(token, {
+        name: payload.nome,
+        email: payload.email,
+        role: payload.perfil === "Administrador" ? "ADMIN" : "SECRETARIA",
+      });
+
+      setUsuarios((prev) => [
+        {
+          id: created.id,
+          nome: created.name,
+          email: created.email,
+          perfil: created.role === "ADMIN" ? "Administrador" : "Secretária",
+          dataCadastro: new Date(created.createdAt).toLocaleDateString("pt-BR"),
+        },
+        ...prev,
+      ]);
+
+      if (created.temporaryPassword) {
+        alert(`Usuario criado. Senha temporaria: ${created.temporaryPassword}`);
+      }
+    } catch (createError) {
+      const message = createError instanceof Error ? createError.message : "Falha ao criar usuario.";
+      setError(message);
+      throw createError;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateUsuario = async (payload: {
+    nome: string;
+    email: string;
+    perfil: "Administrador" | "Secretária";
+  }) => {
+    if (!token || !editingUserId) {
+      throw new Error("Sessao expirada. Faca login novamente.");
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const updated = await updateUser(token, editingUserId, {
+        name: payload.nome,
+        email: payload.email,
+        role: payload.perfil === "Administrador" ? "ADMIN" : "SECRETARIA",
+      });
+
+      setUsuarios((prev) =>
+        prev.map((user) =>
+          user.id === editingUserId
+            ? {
+                id: updated.id,
+                nome: updated.name,
+                email: updated.email,
+                perfil: updated.role === "ADMIN" ? "Administrador" : "Secretária",
+                dataCadastro: new Date(updated.createdAt).toLocaleDateString("pt-BR"),
+              }
+            : user,
+        ),
+      );
+    } catch (updateError) {
+      const message = updateError instanceof Error ? updateError.message : "Falha ao atualizar usuario.";
+      setError(message);
+      throw updateError;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const editingUser = usuarios.find((item) => item.id === editingUserId) ?? null;
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setModalMode("create");
+    setEditingUserId(null);
+  };
+
+  if (isCheckingAccess) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+        Verificando permissao...
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-screen p-8 bg-[#f8fafc]">
@@ -52,6 +191,13 @@ export default function UsuariosPage() {
         
         {/* Cabeçalho superior com botão de inclusão */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+            >
+              ← Voltar
+            </button>
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">
               Controle de Usuários
@@ -62,7 +208,11 @@ export default function UsuariosPage() {
           </div>
           
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setModalMode("create");
+              setEditingUserId(null);
+              setIsModalOpen(true);
+            }}
             className="rounded-xl bg-[#15186d] px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-[#1c2193] transition cursor-pointer"
           >
             + Incluir Novo Usuário
@@ -70,6 +220,10 @@ export default function UsuariosPage() {
         </div>
 
         {/* Tabela Refatorada com a Identidade Visual do Grupo */}
+        {error ? (
+          <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p>
+        ) : null}
+
         <div className="overflow-x-auto rounded-3xl border border-white/70 bg-white/70 shadow-2xl shadow-slate-900/5 backdrop-blur">
           <table className="w-full text-left text-sm text-slate-800">
             <thead className="bg-[#15186d] text-xs uppercase tracking-wider text-white">
@@ -134,6 +288,14 @@ export default function UsuariosPage() {
                 </tr>
               ))}
 
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center font-medium text-slate-500">
+                    Carregando usuarios...
+                  </td>
+                </tr>
+              ) : null}
+
               {/* Estado vazio idêntico ao de vocês */}
               {usuarios.length === 0 && (
                 <tr>
@@ -152,7 +314,11 @@ export default function UsuariosPage() {
         {/* Chamada para a modal que criamos anteriormente */}
         <ModalUsuario 
           isOpen={isModalOpen} 
-          onClose={() => setIsModalOpen(false)} 
+          mode={modalMode}
+          initialData={editingUser}
+          onClose={closeModal}
+          onSubmit={modalMode === "edit" ? handleUpdateUsuario : handleCreateUsuario}
+          isSubmitting={isSubmitting}
         />
         
       </div>

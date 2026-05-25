@@ -2,48 +2,132 @@
 
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import { LogOut, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 import TabelaPerguntas, {
   Pergunta,
 } from "@/components/secretaria/TabelaPerguntas";
+import { useProtectedRoute } from "@/hooks/useProtectedRoute";
+import { useAuthStore } from "@/stores/auth.store";
+import {
+  fetchInquiries,
+  updateInquiryResponded,
+} from "@/services/api/inquiries.service";
 
-// Mock de dados simulando o que virá do back-end
-const listaPerguntasMock: Pergunta[] = [
-  {
-    id: "1",
-    dataCadastro: "18/05/2026 - 14:30",
-    nome: "Carlos Silva",
-    email: "carlos.silva@fatec.sp.gov.br",
-    pergunta:
-      "Qual o prazo final para a entrega da rematrícula do segundo semestre?",
-    respondido: false,
-    respondidoEm: "",
-    dataEnvio: "18/05/2026 - 14:32",
-  },
-  {
-    id: "2",
-    dataCadastro: "17/05/2026 - 08:55",
-    nome: "Mariana Souza",
-    email: "mariana.souza@fatec.sp.gov.br",
-    pergunta:
-      "Como faço para solicitar a dispensa da disciplina de Programação Web?",
-    respondido: true,
-    respondidoEm: "17/05/2026 - 10:00",
-    dataEnvio: "17/05/2026 - 09:15",
-  },
-  {
-    id: "3",
-    dataCadastro: "18/05/2026 - 07:50",
-    nome: "Roberto Alencar",
-    email: "roberto.alencar@gmail.com",
-    pergunta:
-      "Quando abre as inscrições para o próximo Vestibular da FATEC Jacareí?",
-    respondido: false,
-    respondidoEm: "",
-    dataEnvio: "18/05/2026 - 08:00",
-  },
-];
+const formatDateTime = (value: string) =>
+  new Date(value).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+const mapApiToPergunta = (item: {
+  id: string;
+  requesterName: string;
+  requesterEmail: string;
+  question: string;
+  status: "ABERTA" | "RESPONDIDA";
+  createdAt: string;
+  updatedAt: string;
+}): Pergunta => ({
+  id: item.id,
+  dataCadastro: formatDateTime(item.createdAt),
+  nome: item.requesterName,
+  email: item.requesterEmail,
+  pergunta: item.question,
+  respondido: item.status === "RESPONDIDA",
+  respondidoEm: item.status === "RESPONDIDA" ? formatDateTime(item.updatedAt) : "",
+  dataEnvio: formatDateTime(item.createdAt),
+});
 
 export default function SecretariaPage() {
+  const { isCheckingAccess, token } = useProtectedRoute({
+    allowedRoles: ["SECRETARIA"],
+  });
+  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canLoad = useMemo(
+    () => !isCheckingAccess && Boolean(token),
+    [isCheckingAccess, token],
+  );
+
+  const getRoleLabel = (role?: string) => {
+    switch (role) {
+      case "ADMIN":
+        return "Administrador";
+      case "SECRETARIA":
+        return "Secretária";
+      default:
+        return "Usuário";
+    }
+  };
+
+  useEffect(() => {
+    if (!canLoad || !token) {
+      return;
+    }
+
+    const loadInquiries = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const items = await fetchInquiries(token);
+        setPerguntas(items.map(mapApiToPergunta));
+      } catch (requestError) {
+        const message =
+          requestError instanceof Error
+            ? requestError.message
+            : "Falha ao carregar perguntas.";
+        setError(message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadInquiries();
+  }, [canLoad, token]);
+
+  const handleToggleRespondido = async (id: string, responded: boolean) => {
+    if (!token) {
+      return;
+    }
+
+    setError(null);
+
+    try {
+      const updated = await updateInquiryResponded(token, id, responded);
+
+      setPerguntas((prev) =>
+        prev.map((item) =>
+          item.id === id ? mapApiToPergunta(updated) : item,
+        ),
+      );
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error
+          ? requestError.message
+          : "Falha ao atualizar status da pergunta.";
+      setError(message);
+    }
+  };
+
+  if (isCheckingAccess) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+        Verificando permissao...
+      </main>
+    );
+  }
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/70 to-rose-50 text-slate-900">
       {/* Efeitos de fundo */}
@@ -62,10 +146,32 @@ export default function SecretariaPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <span className="rounded-full bg-slate-200/60 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-500">
-            Painel Administrativo
-          </span>
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-lg shadow-slate-900/5 backdrop-blur">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#15186d] text-white">
+            <ShieldCheck size={18} />
+          </div>
+
+          <div className="pr-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              {getRoleLabel(user?.role)}
+            </p>
+
+            <p className="font-bold text-slate-800">
+              {user?.name || getRoleLabel(user?.role)}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              router.push("/login");
+            }}
+            title="Sair"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </header>
 
@@ -86,11 +192,19 @@ export default function SecretariaPage() {
             Gerencie e acompanhe as dúvidas enviadas pelos alunos
             através do assistente virtual.
           </p>
+
+          {error ? (
+            <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {error}
+            </p>
+          ) : null}
         </div>
 
         {/* Tabela */}
         <TabelaPerguntas
-          perguntasIniciais={listaPerguntasMock}
+          perguntas={perguntas}
+          isLoading={isLoading}
+          onToggleRespondido={handleToggleRespondido}
         />
       </section>
     </main>

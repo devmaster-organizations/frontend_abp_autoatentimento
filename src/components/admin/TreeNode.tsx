@@ -10,11 +10,11 @@ import StatusBadge from "./StatusBadge";
 interface Props {
     node: ChatNode;
     level?: number;
-    onToggleStatus: (id: number) => void;
+    onToggleStatus: (id: string) => void;
     onCreateNode: (node: ChatNode) => void;
     onEditNode: (node: ChatNode) => void;
-    openMenuId: number | null;
-    setOpenMenuId: (id: number | null) => void;
+    openMenuId: string | null;
+    setOpenMenuId: (id: string | null) => void;
 }
 
 export default function TreeNode({
