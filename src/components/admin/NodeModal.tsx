@@ -1,13 +1,23 @@
 "use client";
 
 import { ChatNode } from "@/types/chat-node";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+
+export type NodeModalPayload = {
+  title: string;
+  nodeType: "MENU" | "RESPOSTA";
+  answerSummary: string;
+  isActive: boolean;
+};
 
 interface Props {
   open: boolean;
   mode: "create" | "edit";
   node?: ChatNode | null;
   onClose: () => void;
+  onSubmit: (payload: NodeModalPayload) => Promise<void>;
+  isSubmitting: boolean;
 }
 
 export default function NodeModal({
@@ -15,13 +25,54 @@ export default function NodeModal({
   mode,
   node,
   onClose,
+  onSubmit,
+  isSubmitting,
 }: Props) {
+  const [titleInput, setTitleInput] = useState("");
+  const [nodeType, setNodeType] = useState<"MENU" | "RESPOSTA">("MENU");
+  const [answerSummary, setAnswerSummary] = useState("");
+  const [isActive, setIsActive] = useState(true);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setTitleInput(node?.titulo_botao ?? "");
+    setNodeType(node?.tipo_no ?? "MENU");
+    setAnswerSummary(node?.conteudo_resposta ?? "");
+    setIsActive(node?.status ?? true);
+    setFormError(null);
+  }, [open, node]);
+
   if (!open) return null;
 
   const title =
     mode === "create"
       ? "Incluir Novo Nó"
       : "Alterar Nó";
+
+  const handleSubmit = async () => {
+    setFormError(null);
+
+    if (!titleInput.trim()) {
+      setFormError("Informe o titulo do no.");
+      return;
+    }
+
+    try {
+      await onSubmit({
+        title: titleInput.trim(),
+        nodeType,
+        answerSummary: answerSummary.trim(),
+        isActive,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao salvar no.";
+      setFormError(message);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -61,7 +112,8 @@ export default function NodeModal({
 
             <input
               type="text"
-              defaultValue={node?.titulo_botao ?? ""}
+              value={titleInput}
+              onChange={(event) => setTitleInput(event.target.value)}
               className="w-full rounded-2xl border border-slate-200 bg-white/80 px-5 py-4 text-slate-800 outline-none transition focus:border-[#15186d] focus:ring-4 focus:ring-indigo-100"
               placeholder="Digite o título do nó"
             />
@@ -74,7 +126,8 @@ export default function NodeModal({
             </label>
 
             <select
-              defaultValue={node?.tipo_no ?? "MENU"}
+              value={nodeType}
+              onChange={(event) => setNodeType(event.target.value as "MENU" | "RESPOSTA")}
               className="w-full rounded-2xl border border-slate-200 bg-white/80 px-5 py-4 text-slate-800 outline-none transition focus:border-[#15186d] focus:ring-4 focus:ring-indigo-100"
             >
               <option value="MENU">MENU</option>
@@ -89,7 +142,8 @@ export default function NodeModal({
             </label>
 
             <textarea
-              defaultValue={node?.conteudo_resposta ?? ""}
+              value={answerSummary}
+              onChange={(event) => setAnswerSummary(event.target.value)}
               rows={5}
               className="w-full resize-none rounded-2xl border border-slate-200 bg-white/80 px-5 py-4 text-slate-800 outline-none transition focus:border-[#15186d] focus:ring-4 focus:ring-indigo-100"
               placeholder="Digite a resposta exibida ao usuário"
@@ -108,23 +162,38 @@ export default function NodeModal({
               </p>
             </div>
 
-            <button className="relative flex h-7 w-14 items-center rounded-full bg-emerald-500 p-1">
-              <span className="h-5 w-5 translate-x-7 rounded-full bg-white shadow-md" />
+            <button
+              type="button"
+              onClick={() => setIsActive((prev) => !prev)}
+              className={`relative flex h-7 w-14 items-center rounded-full p-1 transition ${isActive ? "bg-emerald-500" : "bg-slate-300"}`}
+            >
+              <span className={`h-5 w-5 rounded-full bg-white shadow-md transition ${isActive ? "translate-x-7" : "translate-x-0"}`} />
             </button>
           </div>
         </div>
+
+        {formError ? (
+          <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            {formError}
+          </p>
+        ) : null}
 
         {/* FOOTER */}
         <div className="mt-10 flex justify-end gap-4">
           <button
             onClick={onClose}
+            disabled={isSubmitting}
             className="rounded-2xl border border-slate-200 bg-white px-6 py-3 font-bold text-slate-700 transition hover:bg-slate-100"
           >
             Cancelar
           </button>
 
-          <button className="rounded-2xl bg-gradient-to-r from-[#15186d] to-red-600 px-7 py-3 font-black text-white shadow-xl shadow-red-900/20 transition hover:-translate-y-0.5">
-            Salvar
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="rounded-2xl bg-gradient-to-r from-[#15186d] to-red-600 px-7 py-3 font-black text-white shadow-xl shadow-red-900/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isSubmitting ? "Salvando..." : "Salvar"}
           </button>
         </div>
       </div>

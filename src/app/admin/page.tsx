@@ -1,24 +1,103 @@
 "use client";
 
 import { ChatNode } from "@/types/chat-node";
-import NodeModal from "@/components/admin/NodeModal";
+import NodeModal, { NodeModalPayload } from "@/components/admin/NodeModal";
 import AdminHeader from "@/components/admin/AdminHeader";
 import TreeNode from "@/components/admin/TreeNode";
-import { mockTree } from "@/data/mockTree";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import Link from "next/link";
+import { useAuthStore } from "@/stores/auth.store";
+import {
+    createNavigationNode,
+    listNavigationNodes,
+    NavigationNodeApi,
+    updateNavigationNode,
+} from "@/services/api/navigation.service";
+
+const slugify = (value: string): string =>
+    value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+        .slice(0, 90);
+
+const buildSlugForCreate = (title: string) => {
+    const base = slugify(title) || "node";
+    const suffix = Date.now().toString(36);
+    return `${base}-${suffix}`;
+};
+
+const flattenNodes = (rows: NavigationNodeApi[]): NavigationNodeApi[] => {
+    const byId = new Map<string, NavigationNodeApi>();
+
+    const visit = (node: NavigationNodeApi) => {
+        byId.set(String(node.id), node);
+        node.children?.forEach(visit);
+    };
+
+    rows.forEach(visit);
+
+    return [...byId.values()];
+};
+
+const mapToTree = (rows: NavigationNodeApi[]): ChatNode[] => {
+    const flat = flattenNodes(rows);
+    const byParent = new Map<string | null, ChatNode[]>();
+
+    flat.forEach((node) => {
+        const mapped: ChatNode = {
+            id: String(node.id),
+            parent_id: node.parentId ? String(node.parentId) : null,
+            titulo_botao: node.title,
+            conteudo_resposta: node.answerSummary ?? node.prompt ?? "",
+            tipo_no: node.responseType === "LINK" ? "RESPOSTA" : "MENU",
+            ordem: node.displayOrder,
+            status: node.isActive,
+            slug: node.slug,
+            response_type: node.responseType,
+            children: [],
+        };
+
+        const bucketKey = mapped.parent_id;
+        const bucket = byParent.get(bucketKey) ?? [];
+        bucket.push(mapped);
+        byParent.set(bucketKey, bucket);
+    });
+
+    const build = (parentId: string | null): ChatNode[] => {
+        const children = byParent.get(parentId) ?? [];
+        const sorted = [...children].sort((a, b) => a.ordem - b.ordem);
+
+        return sorted.map((node) => {
+            const nodeChildren = build(node.id);
+            return {
+                ...node,
+                tipo_no: nodeChildren.length > 0 ? "MENU" : "RESPOSTA",
+                children: nodeChildren,
+            };
+        });
+    };
+
+    return build(null);
+};
 
 
 
 
 export default function AdminPage() {
     const { isCheckingAccess } = useProtectedRoute({ allowedRoles: ["ADMIN"] });
+    const token = useAuthStore((state) => state.token);
 
     const [openMenuId, setOpenMenuId] =
-        useState<number | null>(null);
+        useState<string | null>(null);
 
-    const [treeData, setTreeData] = useState(mockTree);
+    const [treeData, setTreeData] = useState<ChatNode[]>([]);
+    const [isLoadingTree, setIsLoadingTree] = useState(true);
+    const [requestError, setRequestError] = useState<string | null>(null);
+    const [isSubmittingNode, setIsSubmittingNode] = useState(false);
 
     const [modalOpen, setModalOpen] = useState(false);
 
@@ -27,6 +106,34 @@ export default function AdminPage() {
 
     const [selectedNode, setSelectedNode] =
         useState<ChatNode | null>(null);
+
+    const selectedNodeChildrenCount = useMemo(
+        () => (selectedNode?.children?.length ?? 0),
+        [selectedNode],
+    );
+
+    const refreshTree = async () => {
+        if (!token) {
+            return;
+        }
+
+        setIsLoadingTree(true);
+        setRequestError(null);
+
+        try {
+            const rows = await listNavigationNodes(token);
+            setTreeData(mapToTree(rows));
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Falha ao carregar nos.";
+            setRequestError(message);
+        } finally {
+            setIsLoadingTree(false);
+        }
+    };
+
+    useEffect(() => {
+        void refreshTree();
+    }, [token]);
 
     const openCreateModal = (node: ChatNode) => {
         setSelectedNode(node);
@@ -45,28 +152,79 @@ export default function AdminPage() {
         setSelectedNode(null);
     };
 
-    const toggleStatus = (id: number) => {
-        const updateNodes = (nodes: typeof treeData): typeof treeData => {
-            return nodes.map((node) => {
-                if (node.id === id) {
-                    return {
-                        ...node,
-                        status: !node.status,
-                    };
+    const toggleStatus = async (id: string) => {
+        if (!token) {
+            return;
+        }
+
+        const findById = (nodes: ChatNode[]): ChatNode | null => {
+            for (const item of nodes) {
+                if (item.id === id) {
+                    return item;
                 }
 
-                if (node.children) {
-                    return {
-                        ...node,
-                        children: updateNodes(node.children),
-                    };
+                if (item.children?.length) {
+                    const found = findById(item.children);
+                    if (found) {
+                        return found;
+                    }
                 }
+            }
 
-                return node;
-            });
+            return null;
         };
 
-        setTreeData(updateNodes(treeData));
+        const currentNode = findById(treeData);
+        if (!currentNode) {
+            return;
+        }
+
+        try {
+            await updateNavigationNode(token, id, {
+                isActive: !currentNode.status,
+            });
+            await refreshTree();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Falha ao atualizar status.";
+            setRequestError(message);
+        }
+    };
+
+    const handleSubmitNode = async (payload: NodeModalPayload) => {
+        if (!token) {
+            throw new Error("Usuario nao autenticado.");
+        }
+
+        setIsSubmittingNode(true);
+        setRequestError(null);
+
+        try {
+            if (modalMode === "create") {
+                await createNavigationNode(token, {
+                    parentId: selectedNode?.id ?? null,
+                    title: payload.title,
+                    slug: buildSlugForCreate(payload.title),
+                    answerSummary: payload.answerSummary || null,
+                    isActive: payload.isActive,
+                    displayOrder: selectedNodeChildrenCount,
+                });
+            } else {
+                if (!selectedNode) {
+                    throw new Error("No selecionado para edicao nao encontrado.");
+                }
+
+                await updateNavigationNode(token, selectedNode.id, {
+                    title: payload.title,
+                    answerSummary: payload.answerSummary || null,
+                    isActive: payload.isActive,
+                });
+            }
+
+            await refreshTree();
+            closeModal();
+        } finally {
+            setIsSubmittingNode(false);
+        }
     };
 
     if (isCheckingAccess) {
@@ -137,6 +295,30 @@ export default function AdminPage() {
                                 </thead>
 
                                 <tbody>
+                                    {isLoadingTree ? (
+                                        <tr>
+                                            <td colSpan={4} className="px-5 py-8 text-center text-sm font-semibold text-slate-500">
+                                                Carregando arvore de nos...
+                                            </td>
+                                        </tr>
+                                    ) : null}
+
+                                    {!isLoadingTree && requestError ? (
+                                        <tr>
+                                            <td colSpan={4} className="px-5 py-8 text-center text-sm font-semibold text-red-600">
+                                                {requestError}
+                                            </td>
+                                        </tr>
+                                    ) : null}
+
+                                    {!isLoadingTree && !requestError && treeData.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className="px-5 py-8 text-center text-sm font-semibold text-slate-500">
+                                                Nenhum no cadastrado.
+                                            </td>
+                                        </tr>
+                                    ) : null}
+
                                     {treeData.map((node) => (
                                         <TreeNode
                                             key={node.id}
@@ -193,6 +375,8 @@ export default function AdminPage() {
                 mode={modalMode}
                 node={selectedNode}
                 onClose={closeModal}
+                onSubmit={handleSubmitNode}
+                isSubmitting={isSubmittingNode}
             />
         </main>
     );
