@@ -13,6 +13,7 @@ type AuthState = {
   hydrate: () => void;
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
+  updateUser: (updatedUser: AuthUser) => void;
 };
 
 type PersistedAuthPayload = {
@@ -98,5 +99,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     clearAuth();
     set({ token: null, user: null, isAuthenticated: false, hasHydrated: true });
+  },
+  updateUser: (updatedUser: AuthUser) => {
+    set((state) => {
+      if (state.token) {
+        saveAuth({ token: state.token, user: updatedUser });
+      }
+      return { user: updatedUser };
+    });
   },
 }));

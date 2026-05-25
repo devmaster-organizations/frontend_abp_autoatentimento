@@ -22,7 +22,7 @@ export async function login(email: string, password: string) {
 }
 
 export async function forgotPassword(email: string) {
-  return apiRequest<{ message: string; resetToken?: string; expiresAt?: string }>("/auth/forgot-password", {
+  return apiRequest<{ message: string; expiresAt?: string }>("/auth/forgot-password", {
     method: "POST",
     body: { email },
   });
@@ -36,9 +36,10 @@ export async function resetPassword(token: string, newPassword: string) {
 }
 
 export async function changePassword(token: string, currentPassword: string, newPassword: string) {
-  return apiRequest<{ message: string }>("/auth/change-password", {
+  const response = await apiRequest<{ message: string; user: AuthUser }>("/auth/change-password", {
     method: "POST",
     token,
     body: { currentPassword, newPassword },
   });
+  return response;
 }

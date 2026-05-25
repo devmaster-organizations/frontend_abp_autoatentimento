@@ -23,3 +23,22 @@ export async function createUser(
     body: payload,
   });
 }
+
+export async function updateUser(
+  token: string,
+  userId: string,
+  payload: { name: string; email: string; role: "ADMIN" | "SECRETARIA" },
+) {
+  return apiRequest<ApiUser>(`/users/${userId}`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export async function deleteUser(token: string, userId: string) {
+  return apiRequest<void>(`/users/${userId}`, {
+    method: "DELETE",
+    token,
+  });
+}

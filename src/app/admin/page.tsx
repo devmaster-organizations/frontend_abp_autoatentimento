@@ -7,6 +7,7 @@ import TreeNode from "@/components/admin/TreeNode";
 import { mockTree } from "@/data/mockTree";
 import { useState } from "react";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
+import Link from "next/link";
 
 
 
@@ -102,6 +103,13 @@ export default function AdminPage() {
                                 dinamicamente.
                             </p>
                         </div>
+
+                        <Link
+                            href="/usuarios"
+                            className="inline-flex items-center justify-center rounded-xl bg-[#15186d] px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#1c2193]"
+                        >
+                            Cadastrar usuarios
+                        </Link>
 
                     </div>
 

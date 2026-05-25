@@ -3,10 +3,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { LogOut, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 import TabelaPerguntas, {
   Pergunta,
 } from "@/components/secretaria/TabelaPerguntas";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
+import { useAuthStore } from "@/stores/auth.store";
 import {
   fetchInquiries,
   updateInquiryResponded,
@@ -44,6 +47,9 @@ export default function SecretariaPage() {
   const { isCheckingAccess, token } = useProtectedRoute({
     allowedRoles: ["SECRETARIA"],
   });
+  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
   const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +58,17 @@ export default function SecretariaPage() {
     () => !isCheckingAccess && Boolean(token),
     [isCheckingAccess, token],
   );
+
+  const getRoleLabel = (role?: string) => {
+    switch (role) {
+      case "ADMIN":
+        return "Administrador";
+      case "SECRETARIA":
+        return "Secretária";
+      default:
+        return "Usuário";
+    }
+  };
 
   useEffect(() => {
     if (!canLoad || !token) {
@@ -129,10 +146,32 @@ export default function SecretariaPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <span className="rounded-full bg-slate-200/60 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-500">
-            Painel Administrativo
-          </span>
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-lg shadow-slate-900/5 backdrop-blur">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#15186d] text-white">
+            <ShieldCheck size={18} />
+          </div>
+
+          <div className="pr-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              {getRoleLabel(user?.role)}
+            </p>
+
+            <p className="font-bold text-slate-800">
+              {user?.name || getRoleLabel(user?.role)}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              router.push("/login");
+            }}
+            title="Sair"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </header>
 

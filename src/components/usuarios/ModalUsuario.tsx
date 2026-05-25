@@ -1,27 +1,53 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+
+type PerfilUsuario = "Administrador" | "Secretária";
 
 interface ModalUsuarioProps {
   isOpen: boolean;
+  mode?: "create" | "edit";
+  initialData?: {
+    nome: string;
+    email: string;
+    perfil: PerfilUsuario;
+  } | null;
   onClose: () => void;
   onSubmit: (payload: {
     nome: string;
     email: string;
-    perfil: "Administrador" | "Secretária";
+    perfil: PerfilUsuario;
   }) => Promise<void>;
   isSubmitting?: boolean;
 }
 
-export default function ModalUsuario({ isOpen, onClose, onSubmit, isSubmitting = false }: ModalUsuarioProps) {
+export default function ModalUsuario({
+  isOpen,
+  mode = "create",
+  initialData = null,
+  onClose,
+  onSubmit,
+  isSubmitting = false,
+}: ModalUsuarioProps) {
   // Estados para controlar os campos obrigatórios
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [perfil, setPerfil] = useState("Secretária");
+  const [nome, setNome] = useState(initialData?.nome ?? "");
+  const [email, setEmail] = useState(initialData?.email ?? "");
+  const [perfil, setPerfil] = useState<PerfilUsuario>(initialData?.perfil ?? "Secretária");
   const [dataCadastro, setDataCadastro] = useState(
     new Date().toISOString().split("T")[0] // Define a data de hoje como padrão
   );
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setNome(initialData?.nome ?? "");
+    setEmail(initialData?.email ?? "");
+    setPerfil(initialData?.perfil ?? "Secretária");
+    setSubmitError(null);
+  }, [initialData, isOpen, mode]);
 
   if (!isOpen) return null;
 
@@ -34,7 +60,7 @@ export default function ModalUsuario({ isOpen, onClose, onSubmit, isSubmitting =
       await onSubmit({
         nome: nome.trim(),
         email: email.trim().toLowerCase(),
-        perfil: perfil as "Administrador" | "Secretária",
+        perfil,
       });
 
       setNome("");
@@ -55,7 +81,9 @@ export default function ModalUsuario({ isOpen, onClose, onSubmit, isSubmitting =
         
         {/* Cabeçalho */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3(id)">
-          <h2 className="text-xl font-bold text-slate-800">Usuários do Sistema</h2>
+          <h2 className="text-xl font-bold text-slate-800">
+            {mode === "edit" ? "Editar Usuário" : "Usuários do Sistema"}
+          </h2>
           <button 
             onClick={onClose} 
             className="text-slate-400 hover:text-slate-600 text-2xl font-semibold focus:outline-none"
@@ -98,7 +126,7 @@ export default function ModalUsuario({ isOpen, onClose, onSubmit, isSubmitting =
             <label className="text-sm font-medium text-slate-700">Perfil de Acesso *</label>
             <select
               value={perfil}
-              onChange={(e) => setPerfil(e.target.value)}
+              onChange={(e) => setPerfil(e.target.value as PerfilUsuario)}
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none bg-white"
             >
               <option value="Administrador">Administrador</option>
@@ -132,7 +160,7 @@ export default function ModalUsuario({ isOpen, onClose, onSubmit, isSubmitting =
               disabled={isSubmitting}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 shadow-sm cursor-pointer"
             >
-              {isSubmitting ? "Salvando..." : "Salvar Usuário"}
+              {isSubmitting ? "Salvando..." : mode === "edit" ? "Salvar Alterações" : "Salvar Usuário"}
             </button>
           </div>
 

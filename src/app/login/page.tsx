@@ -5,7 +5,6 @@ import Image from "next/image";
 import { Mail, Lock, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
-import { forgotPassword, resetPassword } from "@/services/api/auth.service";
 
 
 export default function Login() {
@@ -13,7 +12,6 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [forgotLoading, setForgotLoading] = useState(false);
 
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
@@ -29,6 +27,11 @@ export default function Login() {
 
     try {
       const user = await login(email.trim().toLowerCase(), password);
+
+      if (user.mustChangePassword) {
+        router.push("/change-password");
+        return;
+      }
 
       if (user.role === "ADMIN") {
         router.push("/admin");
@@ -47,43 +50,6 @@ export default function Login() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    const forgotEmail = window.prompt("Digite o e-mail para recuperar a senha:", email);
-
-    if (!forgotEmail) {
-      return;
-    }
-
-    setForgotLoading(true);
-
-    try {
-      const response = await forgotPassword(forgotEmail.trim().toLowerCase());
-
-      const tokenFromResponse = response.resetToken;
-      const token = tokenFromResponse ?? window.prompt("Digite o token recebido por e-mail:");
-
-      if (!token) {
-        alert("Recuperacao iniciada. Quando tiver o token, execute o reset novamente.");
-        setForgotLoading(false);
-        return;
-      }
-
-      const newPassword = window.prompt("Digite a nova senha (minimo 8 caracteres):");
-
-      if (!newPassword) {
-        setForgotLoading(false);
-        return;
-      }
-
-      await resetPassword(token.trim(), newPassword);
-      alert("Senha redefinida com sucesso. Agora faca login.");
-    } catch (requestError) {
-      const message = requestError instanceof Error ? requestError.message : "Falha ao recuperar senha.";
-      alert(message);
-    } finally {
-      setForgotLoading(false);
-    }
-  };
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-6xl bg-white rounded-2xl shadow-lg overflow-hidden flex">
@@ -147,9 +113,10 @@ export default function Login() {
 
             <button
               type="button"
-              disabled={forgotLoading}
-              onClick={handleForgotPassword}
-              className="text-blue-600 hover:underline disabled:opacity-70"
+              disabled
+              aria-disabled="true"
+              title="Indisponivel no momento"
+              className="text-gray-400 line-through cursor-not-allowed"
             >
               Esqueci minha senha
             </button>
