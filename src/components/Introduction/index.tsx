@@ -44,17 +44,14 @@ export default function Introduction({
         </div>
 
         <nav className="hidden items-center gap-9 text-sm font-semibold text-slate-950 lg:flex">
-          <a className="transition hover:text-red-600" href="">
-            Início
+          <a className="transition hover:text-red-600" href="https://fatecjacarei.cps.sp.gov.br/" target="_blank">
+            Fatec
           </a>
-          <a className="transition hover:text-red-600" href="">
-            Cursos
+          <a className="transition hover:text-red-600" href="https://siga.cps.sp.gov.br/sigaaluno/applogin.aspx" target="_blank">
+            Siga
           </a>
-          <a className="transition hover:text-red-600" href="">
-            Atendimento
-          </a>
-          <a className="transition hover:text-red-600" href="">
-            Sobre
+          <a className="transition hover:text-red-600" href="https://www.cps.sp.gov.br/" target="_blank">
+            Centro Paula Souza
           </a>
           <button
             className="cursor-pointer bg-transparent font-semibold transition hover:text-red-600"
