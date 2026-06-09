@@ -8,6 +8,8 @@ export type NavigationNodeApi = {
   prompt: string | null;
   answerSummary: string | null;
   responseType: "TEXT" | "LINK";
+  linkLabel: string | null;
+  linkUrl: string | null;
   displayOrder: number;
   isActive: boolean;
   children?: NavigationNodeApi[];
@@ -18,6 +20,9 @@ export type CreateNavigationNodeInput = {
   title: string;
   slug: string;
   answerSummary: string | null;
+  responseType?: "TEXT" | "LINK";
+  linkLabel?: string | null;
+  linkUrl?: string | null;
   isActive: boolean;
   displayOrder?: number;
 };
@@ -25,6 +30,9 @@ export type CreateNavigationNodeInput = {
 export type UpdateNavigationNodeInput = {
   title?: string;
   answerSummary?: string | null;
+  responseType?: "TEXT" | "LINK";
+  linkLabel?: string | null;
+  linkUrl?: string | null;
   isActive?: boolean;
 };
 
@@ -44,7 +52,9 @@ export async function createNavigationNode(token: string, payload: CreateNavigat
       title: payload.title,
       slug: payload.slug,
       answerSummary: payload.answerSummary,
-      responseType: "TEXT",
+      responseType: payload.responseType ?? "TEXT",
+      linkLabel: payload.linkLabel ?? null,
+      linkUrl: payload.linkUrl ?? null,
       displayOrder: payload.displayOrder ?? 0,
       isActive: payload.isActive,
     },

@@ -17,6 +17,9 @@ type ChatNodeApi = {
   title: string;
   prompt: string | null;
   answerSummary: string | null;
+  responseType: "TEXT" | "LINK";
+  linkLabel: string | null;
+  linkUrl: string | null;
   children: Array<{
     id: string;
     slug: string;
@@ -36,6 +39,17 @@ const START_NODE_SLUG = "inicio";
 
 const getNodeMessage = (node: ChatNodeApi): string =>
   node.answerSummary || node.prompt || node.title;
+
+const getNodeLink = (node: ChatNodeApi) => {
+  if (!node.linkUrl) {
+    return undefined;
+  }
+
+  return {
+    href: node.linkUrl,
+    label: node.linkLabel || "Acessar link",
+  };
+};
 
 export default function Chat() {
   const [currentNodeSlug, setCurrentNodeSlug] = useState(START_NODE_SLUG);
@@ -102,6 +116,7 @@ export default function Chat() {
             id: 1,
             sender: "bot",
             text: getNodeMessage(node),
+            link: getNodeLink(node),
           },
         ]);
       } catch (loadError) {
@@ -143,6 +158,7 @@ export default function Chat() {
           id: currentMessages.length + 1,
           sender: "bot",
           text: getNodeMessage(nextNode),
+          link: getNodeLink(nextNode),
         },
       ]);
     } catch (selectError) {
@@ -160,6 +176,7 @@ export default function Chat() {
           id: 1,
           sender: "bot",
           text: getNodeMessage(node),
+          link: getNodeLink(node),
         },
       ]);
     } catch (restartError) {

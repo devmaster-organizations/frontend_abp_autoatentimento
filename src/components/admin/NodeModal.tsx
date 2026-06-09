@@ -8,6 +8,7 @@ export type NodeModalPayload = {
   title: string;
   nodeType: "MENU" | "RESPOSTA";
   answerSummary: string;
+  linkUrl: string;
   isActive: boolean;
 };
 
@@ -31,6 +32,7 @@ export default function NodeModal({
   const [titleInput, setTitleInput] = useState("");
   const [nodeType, setNodeType] = useState<"MENU" | "RESPOSTA">("MENU");
   const [answerSummary, setAnswerSummary] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -42,6 +44,7 @@ export default function NodeModal({
     setTitleInput(node?.titulo_botao ?? "");
     setNodeType(node?.tipo_no ?? "MENU");
     setAnswerSummary(node?.conteudo_resposta ?? "");
+    setLinkUrl(node?.link_url ?? "");
     setIsActive(node?.status ?? true);
     setFormError(null);
   }, [open, node]);
@@ -61,11 +64,23 @@ export default function NodeModal({
       return;
     }
 
+    const normalizedLinkUrl = linkUrl.trim();
+
+    if (normalizedLinkUrl) {
+      const looksLikeUrl = /^https?:\/\//i.test(normalizedLinkUrl);
+
+      if (!looksLikeUrl) {
+        setFormError("O link deve comecar com http:// ou https://.");
+        return;
+      }
+    }
+
     try {
       await onSubmit({
         title: titleInput.trim(),
         nodeType,
         answerSummary: answerSummary.trim(),
+        linkUrl: normalizedLinkUrl,
         isActive,
       });
     } catch (error) {
@@ -148,6 +163,24 @@ export default function NodeModal({
               className="w-full resize-none rounded-2xl border border-slate-200 bg-white/80 px-5 py-4 text-slate-800 outline-none transition focus:border-[#15186d] focus:ring-4 focus:ring-indigo-100"
               placeholder="Digite a resposta exibida ao usuário"
             />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-bold uppercase tracking-wide text-slate-700">
+              Link (opcional)
+            </label>
+
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={(event) => setLinkUrl(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white/80 px-5 py-4 text-slate-800 outline-none transition focus:border-[#15186d] focus:ring-4 focus:ring-indigo-100"
+              placeholder="https://www.cps.sp.gov.br"
+            />
+
+            <p className="mt-2 text-xs font-semibold text-slate-500">
+              Se preenchido, o chat exibira este link como hiperlink para o usuario.
+            </p>
           </div>
 
           {/* STATUS */}

@@ -5,6 +5,7 @@ import Chat from "@/components/Chat";
 import EmailModal, { EmailFormPayload } from "@/components/EmailModal";
 import Header from "@/components/Header";
 import Introduction from "@/components/Introduction";
+import { sendInquiry } from "@/services/api/inquiries.service";
 
 const CHAT_HASH = "#chat";
 
@@ -42,9 +43,11 @@ export default function Home() {
 
   const submitEmailContact = useCallback(
     async (payload: EmailFormPayload) => {
-      void payload;
-      // Futuro ponto de integracao com o backend:
-      // await fetch("/api/contact", { method: "POST", body: JSON.stringify(payload) });
+      await sendInquiry({
+        requesterName: payload.name,
+        requesterEmail: payload.email,
+        question: payload.message,
+      });
     },
     [],
   );

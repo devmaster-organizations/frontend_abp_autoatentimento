@@ -6,6 +6,8 @@ export interface ChatNode {
   parent_id: string | null;
   titulo_botao: string;
   conteudo_resposta?: string;
+  link_url?: string | null;
+  link_label?: string | null;
   tipo_no: NodeType;
   ordem: number;
   status: boolean;

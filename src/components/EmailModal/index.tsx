@@ -27,6 +27,15 @@ export default function EmailModal({
 }: EmailModalProps) {
   const [form, setForm] = useState(initialForm);
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setForm(initialForm);
+      setStatus("idle");
+      setError(null);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -50,15 +59,26 @@ export default function EmailModal({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("sending");
+    setError(null);
 
-    await onSubmit?.({
-      name: form.name.trim(),
-      email: form.email.trim(),
-      message: form.message.trim(),
-    });
+    try {
+      await onSubmit?.({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        message: form.message.trim(),
+      });
 
-    setStatus("sent");
-    setForm(initialForm);
+      setStatus("sent");
+      setForm(initialForm);
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error
+          ? requestError.message
+          : "Falha ao enviar mensagem.";
+
+      setStatus("idle");
+      setError(message);
+    }
   }
 
   const isSending = status === "sending";
@@ -163,8 +183,13 @@ export default function EmailModal({
 
             {status === "sent" ? (
               <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
-                Mensagem preparada para envio. A integração com o backend pode
-                usar esses dados do formulário.
+                Mensagem enviada com sucesso.
+              </p>
+            ) : null}
+
+            {error ? (
+              <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+                {error}
               </p>
             ) : null}
 

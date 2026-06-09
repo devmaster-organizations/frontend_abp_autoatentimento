@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Mail, Lock, Eye } from "lucide-react";
+import { Mail, Lock, Eye, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
 
@@ -16,6 +16,15 @@ export default function Login() {
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
+
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/");
+  };
 
   const handleLogin = async () => {
     setError(null);
@@ -56,6 +65,14 @@ export default function Login() {
         
         {/* LADO ESQUERDO - FORM */}
         <div className="w-full lg:w-1/2 p-10 flex flex-col justify-center">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="mb-4 inline-flex w-fit items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+          >
+            <ArrowLeft size={16} />
+            Voltar
+          </button>
           
           {/* TAG */}
           <span className="text-xs font-semibold bg-blue-100 text-blue-600 px-3 py-1 rounded-full w-fit">

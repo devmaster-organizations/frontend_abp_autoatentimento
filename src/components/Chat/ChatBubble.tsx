@@ -30,7 +30,22 @@ export function ChatBubble({ message }: ChatBubbleProps) {
               : "border-gray-200 bg-white text-slate-800 shadow-slate-900/5"
           }`}
         >
-          {message.text}
+          <span>
+            {message.text}
+            {message.link ? (
+              <>
+                <br />
+                <a
+                  href={message.link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block break-all font-bold text-indigo-700 underline underline-offset-2 hover:text-indigo-900"
+                >
+                  {message.link.label}
+                </a>
+              </>
+            ) : null}
+          </span>
         </p>
       </div>
     </div>
