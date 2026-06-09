@@ -34,7 +34,7 @@ export default function Login() {
       }
 
       if (user.role === "ADMIN") {
-        router.push("/admin");
+        router.push("/dashboard");
         return;
       }
 

@@ -12,7 +12,7 @@ type UseProtectedRouteParams = {
 };
 
 const getDefaultRouteByRole = (role: Role) =>
-  role === "ADMIN" ? "/admin" : "/secretaria";
+  role === "ADMIN" ? "/dashboard" : "/secretaria";
 
 export function useProtectedRoute(params?: UseProtectedRouteParams) {
   const router = useRouter();
