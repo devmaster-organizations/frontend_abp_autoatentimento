@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  LayoutDashboard,
   LogOut,
   MessageSquareText,
   Users,
@@ -11,7 +12,12 @@ import { useAuthStore } from "@/stores/auth.store";
 
 const navigationItems = [
   {
-    label: "Perguntas",
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "Admin",
     href: "/admin",
     icon: MessageSquareText,
   },
@@ -47,7 +53,7 @@ export default function AdminSidebar() {
   return (
     <aside className="flex w-full flex-col bg-[#071a3d] text-white md:min-h-screen md:w-[280px] md:flex-shrink-0">
       <div className="flex items-center justify-between gap-6 px-5 py-5 md:block md:px-6 md:py-10">
-        <Link href="/admin" className="block leading-none">
+        <Link href="/dashboard" className="block leading-none">
           <span className="block text-4xl font-black tracking-tight md:text-5xl">
             Fatec
           </span>
