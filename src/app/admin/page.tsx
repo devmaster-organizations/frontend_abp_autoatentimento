@@ -2,6 +2,7 @@
 
 import { ChatNode } from "@/types/chat-node";
 import NodeModal, { NodeModalPayload } from "@/components/admin/NodeModal";
+import AdminShell from "@/components/admin/AdminShell";
 import AdminHeader from "@/components/admin/AdminHeader";
 import TreeNode from "@/components/admin/TreeNode";
 import { useEffect, useMemo, useState } from "react";
@@ -236,6 +237,7 @@ export default function AdminPage() {
     }
 
     return (
+        <AdminShell>
         <main className="min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/70 to-rose-50 text-slate-900">
             <div className="pointer-events-none absolute -left-28 -top-28 h-[28rem] w-[28rem] rounded-full bg-indigo-400/30 blur-3xl" />
 
@@ -379,5 +381,6 @@ export default function AdminPage() {
                 isSubmitting={isSubmittingNode}
             />
         </main>
+        </AdminShell>
     );
 }
