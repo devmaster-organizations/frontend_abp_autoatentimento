@@ -1,9 +1,5 @@
 @import "tailwindcss";
 
-body {
-  outline: 10px solid red !important;
-}
-
 html, body {
     height: 100%;
 }

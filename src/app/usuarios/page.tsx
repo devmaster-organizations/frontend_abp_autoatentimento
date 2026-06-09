@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ModalUsuario from "@/components/usuarios/ModalUsuario";
+import AdminShell from "@/components/admin/AdminShell";
 import { createUser, deleteUser, fetchUsers, updateUser } from "@/services/api/users.service";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { useRouter } from "next/navigation";
@@ -186,6 +187,7 @@ export default function UsuariosPage() {
   }
 
   return (
+    <AdminShell>
     <div className="min-h-screen p-8 bg-[#f8fafc]">
       <div className="max-w-6xl mx-auto">
         
@@ -323,5 +325,6 @@ export default function UsuariosPage() {
         
       </div>
     </div>
+    </AdminShell>
   );
 }
